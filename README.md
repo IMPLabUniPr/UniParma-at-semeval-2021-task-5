@@ -220,3 +220,15 @@ conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
 ```
 
 Now, everything should work fine!
+
+## Reference
+
+```
+@article{karimi2021uniparma,
+  title={Uniparma at semeval-2021 task 5: Toxic spans detection using characterbert and bag-of-words model},
+  author={Karimi, Akbar and Rossi, Leonardo and Prati, Andrea},
+  journal={arXiv preprint arXiv:2103.09645},
+  year={2021}
+}
+
+```
