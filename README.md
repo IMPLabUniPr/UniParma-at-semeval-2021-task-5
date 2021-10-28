@@ -1,3 +1,5 @@
+# UniParma at SemEval-2021 Task 5: Toxic Spans Detection Using CharacterBERT and Bag-of-Words Model
+
 [paper]: https://arxiv.org/pdf/2103.09645.pdf
 
 This is the repository of the paper "[UniParma at SemEval-2021 Task 5: Toxic Spans Detection Using CharacterBERT and Bag-of-Words Model][paper]".
@@ -6,9 +8,9 @@ The rest of the description is for the CharacterBERT paper. For the description 
 
 # CharacterBERT
 
-[paper]: https://arxiv.org/abs/2010.10392
+[paper2]: https://arxiv.org/abs/2010.10392
 
-"[CharacterBERT: Reconciling ELMo and BERT for Word-LevelOpen-Vocabulary Representations From Characters][paper]"
+"[CharacterBERT: Reconciling ELMo and BERT for Word-LevelOpen-Vocabulary Representations From Characters][paper2]"
 
 ## Table of contents
 
