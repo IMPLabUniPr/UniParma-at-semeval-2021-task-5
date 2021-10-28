@@ -35,7 +35,7 @@ def retokenize(examples, tokenization_function):
         elif type(example).__name__ == 'SequenceLabellingExample':
             tokens = example.token_sequence
             labels = example.label_sequence
-            assert tokens
+            # assert tokens
             assert len(tokens) == len(labels)
             new_tokens, new_labels = [], []
             for token, label in zip(tokens, labels):

@@ -18,7 +18,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from utils.misc import set_seed
 
 
-def train(args, dataset, model, tokenizer, labels, pad_token_label_id):
+def train(args, dataset, model, tokenizer, labels, pad_token_label_id, writer):
     """ Trains the given model on the given dataset. """
 
     train_dataset = dataset['train']
@@ -74,9 +74,21 @@ def train(args, dataset, model, tokenizer, labels, pad_token_label_id):
 
     model.zero_grad()
     train_iterator = tqdm.trange(epochs_trained, int(args.num_train_epochs), desc="Epoch")
-
     set_seed(seed_value=args.seed)  # Added here for reproductibility
+
     for num_epoch in train_iterator:
+
+        ########################################################
+        # # unFreeze bert
+        if num_epoch != 0:
+            for param in model.bert.parameters():
+                param.requires_grad = False
+            for param in model.bert.hsum.parameters():
+                param.requires_grad = True
+            for param in model.bert.capsNet.parameters():
+                param.requires_grad = True
+        ########################################################
+
         epoch_iterator = tqdm.tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(epoch_iterator):
 
@@ -95,7 +107,7 @@ def train(args, dataset, model, tokenizer, labels, pad_token_label_id):
 
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
-
+            writer.add_scalar("Loss/train", loss, num_epoch*1789 + step)
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 

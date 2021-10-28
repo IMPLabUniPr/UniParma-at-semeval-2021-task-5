@@ -4,9 +4,11 @@
 """ Defines the main CharacterBERT PyTorch class. """
 import torch
 from torch import nn
-from transformers.modeling_bert import BertPreTrainedModel, BertEncoder, BertPooler
-
+from transformers.modeling_bert import BertPreTrainedModel, BertEncoder, BertPooler, BertLayer
 from modeling.character_cnn import CharacterCNN
+import numpy as np
+from modeling.layer_ae import PrimaryCaps, FlattenCaps, FCCaps
+import torch.nn.functional as F
 
 
 class BertCharacterEmbeddings(nn.Module):
@@ -45,6 +47,58 @@ class BertCharacterEmbeddings(nn.Module):
         return embeddings
 
 
+
+class HSUM(nn.Module):
+    def __init__(self, count, config):
+        super(HSUM, self).__init__()
+        self.count = count
+        self.pre_layers = torch.nn.ModuleList()
+        self.dropout = torch.nn.Dropout(config.hidden_dropout_prob)
+        for i in range(count):
+            self.pre_layers.append(BertLayer(config))
+        self.post_layer = BertLayer(config)
+
+    def forward(self, layers, attention_mask):
+        output = torch.zeros_like(layers[0])
+        for i in range(self.count):
+            output = output + layers[-i-1]
+            output = self.dropout(output)
+            output = self.pre_layers[i](output, attention_mask)
+            output = output[0]
+        output = self.dropout(output)
+        output = self.post_layer(output, attention_mask)
+        output = self.dropout(output[0])
+        return output
+
+
+
+class CapsNet(nn.Module):
+    def __init__(self, config):
+        super(CapsNet, self).__init__()
+        self.primary_caps1 = PrimaryCaps(num_capsules=config.dim_capsule, in_channels=1, 
+                                        out_channels=16, kernel_size=1, stride=1)
+
+        self.flatten_capsules = FlattenCaps()
+        self.W_class = nn.Parameter(torch.FloatTensor(12288, config.num_compressed_capsule))
+        # torch.nn.init.kaiming_normal_(self.W_class, mode='fan_in', nonlinearity='relu')
+        torch.nn.init.xavier_normal_(self.W_class)
+        self.class_capsules = FCCaps(config, output_capsule_num=3,
+                                        input_capsule_num=config.num_compressed_capsule, 
+                                        in_channels=config.dim_capsule, 
+                                        out_channels=config.dim_capsule)
+        
+    def compression(self, x, W):
+        x = torch.matmul(x.permute(0,2,1), W).permute(0,2,1)
+        return x
+        
+    def forward(self, x):
+        x = self.primary_caps1(x)
+        x = self.flatten_capsules(x)
+        x = self.compression(x, self.W_class)
+        logits = self.class_capsules(x) # [16, 3]
+        return logits
+
+
 class CharacterBertModel(BertPreTrainedModel):
     """ BertModel using char-cnn embeddings instead of wordpiece embeddings. """
 
@@ -54,8 +108,9 @@ class CharacterBertModel(BertPreTrainedModel):
 
         self.embeddings = BertCharacterEmbeddings(config)
         self.encoder = BertEncoder(config)
-        self.pooler = BertPooler(config)
-
+        self.hsum = HSUM(4, config)
+        self.capsNet = CapsNet(config)
+        # self.pooler = BertPooler(config)
         self.init_weights()
 
     def get_input_embeddings(self):
@@ -80,7 +135,6 @@ class CharacterBertModel(BertPreTrainedModel):
         encoder_attention_mask=None,
         **kwargs
     ):
-
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
         elif input_ids is not None:
@@ -186,13 +240,14 @@ class CharacterBertModel(BertPreTrainedModel):
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_extended_attention_mask,
         )
-        sequence_output = encoder_outputs[0]
-        pooled_output = self.pooler(sequence_output)
+        output = self.hsum(encoder_outputs[1], extended_attention_mask)
+        logits = self.capsNet(encoder_outputs[1][-1])
+        # sequence_output = encoder_outputs[0]
+        # pooled_output = self.pooler(sequence_output)
 
-        outputs = (sequence_output, pooled_output,) + encoder_outputs[
-            1:
-        ]  # add hidden_states and attentions if they are here
-        return outputs  # sequence_output, pooled_output, (hidden_states), (attentions)
+        # outputs = (sequence_output, pooled_output,) + encoder_outputs[1:]  # add hidden_states and attentions if they are here
+        # import ipdb; ipdb.set_trace()
+        return logits  # sequence_output, pooled_output, (hidden_states), (attentions)
 
 
 if __name__ == "__main__":

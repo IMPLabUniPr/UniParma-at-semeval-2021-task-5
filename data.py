@@ -56,6 +56,7 @@ def load_sequence_labelling_dataset(step, do_lower_case):
             #          is O
             #          Hicham B-PER
             #          . O
+            print(line)
             splitline = line.strip().split()
             if splitline:
                 token, label = splitline

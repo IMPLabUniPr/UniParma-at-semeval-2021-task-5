@@ -1,8 +1,16 @@
+# UniParma at SemEval-2021 Task 5: Toxic Spans Detection Using CharacterBERT and Bag-of-Words Model
+
+[paper]: https://arxiv.org/pdf/2103.09645.pdf
+
+This is the repository of the paper "[UniParma at SemEval-2021 Task 5: Toxic Spans Detection Using CharacterBERT and Bag-of-Words Model][paper]".
+
+The rest of the description is for the CharacterBERT paper. For the description of our paper, please refer to the provided link above. Also to run CharacterBERT along with our bag of words model, follow the steps in steps.txt.
+
 # CharacterBERT
 
-[paper]: https://arxiv.org/abs/2010.10392
+[paper2]: https://arxiv.org/abs/2010.10392
 
-This is the repository of the paper "[CharacterBERT: Reconciling ELMo and BERT for Word-LevelOpen-Vocabulary Representations From Characters][paper]" that is soon to appear at COLING 2020.
+"[CharacterBERT: Reconciling ELMo and BERT for Word-LevelOpen-Vocabulary Representations From Characters][paper2]"
 
 ## Table of contents
 
@@ -16,7 +24,6 @@ This is the repository of the paper "[CharacterBERT: Reconciling ELMo and BERT f
 - [How do I pre-train CharacterBERT?](#how-do-i-pre-train-characterbert)
 - [How do I reproduce the paper's results?](#how-do-i-reproduce-the-papers-results)
 - [Running experiments on GPUs](#running-experiments-on-gpus)
-- [References](#references)
 
 ## Paper summary
 
@@ -67,11 +74,11 @@ conda activate character-bert
 Then install the following packages (~3Gb):
 
 ```bash
-conda install pytorch cudatoolkit=10.2 -c pytorch
+conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
 pip install transformers==3.3.1 scikit-learn==0.23.2
 ```
 
-> Note 1: If you will not be running experiments on a GPU, install pyTorch via this command instead `conda install pytorch cpuonly -c pytorch`
+> Note 1: If you will not be running experiments on a GPU, install pyTorch via this command instead `conda install pytorch torchvision cpuonly -c pytorch`
 
 > Note 2: If you just want to be able to load pre-trained CharacterBERT weigths, you do not have to install `scikit-learn` which is only used for computing Precision, Recall, F1 metrics during evaluation.
 
@@ -104,44 +111,6 @@ python download.py --model='all'
 ### Using CharacterBERT in practice
 
 CharacterBERT's architecture is almost identical to BERT, so you can easilly adapt any code that uses the [Transformers](https://github.com/huggingface/transformers) library.
-
-#### Example 1: getting word embeddings from CharacterBERT
-
-```python
-"""Basic example: getting word embeddings from CharacterBERT"""
-from transformers import BertTokenizer
-from modeling.character_bert import CharacterBertModel
-from utils.character_cnn import CharacterIndexer
-
-# Example text
-x = "Hello World!"
-
-# Tokenize the text
-tokenizer = BertTokenizer.from_pretrained(
-    './pretrained-models/bert-base-uncased/')
-x = tokenizer.basic_tokenizer.tokenize(x)
-
-# Add [CLS] and [SEP]
-x = ['[CLS]', *x, '[SEP]']
-
-# Convert token sequence into character indices
-indexer = CharacterIndexer()
-batch = [x]  # This is a batch with a single token sequence x
-batch_ids = indexer.as_padded_tensor(batch)
-
-# Load some pre-trained CharacterBERT
-model = CharacterBertModel.from_pretrained(
-    './pretrained-models/medical_character_bert/')
-
-# Feed batch to CharacterBERT & get the embeddings
-embeddings_for_batch, _ = model(batch_ids)
-embeddings_for_x = embeddings_for_batch[0]
-print('These are the embeddings produces by CharacterBERT (last transformer layer)')
-for token, embedding in zip(x, embeddings_for_x):
-    print(token, embedding)
-```
-
-#### Example 2: using CharacterBERT for binary classification 
 
 ```python
 """ Basic example: using CharacterBERT for binary classification """
@@ -247,22 +216,19 @@ Then compare this version with the numbers given in the [NVIDIA CUDA Toolkit Rel
 In this example the shown version is `390.116` which corresponds to `CUDA 9.0`. This means that the appropriate command for installing PyTorch is:
 
 ```bash
-conda install pytorch cudatoolkit=9.0 -c pytorch
+conda install pytorch torchvision cudatoolkit=9.0 -c pytorch
 ```
 
 Now, everything should work fine!
 
-## References
-
-Please cite our paper if you use CharacterBERT in your work:
+## Reference
 
 ```
-@misc{boukkouri2020characterbert,
-      title={CharacterBERT: Reconciling ELMo and BERT for Word-Level Open-Vocabulary Representations From Characters}, 
-      author={Hicham El Boukkouri and Olivier Ferret and Thomas Lavergne and Hiroshi Noji and Pierre Zweigenbaum and Junichi Tsujii},
-      year={2020},
-      eprint={2010.10392},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@article{karimi2021uniparma,
+  title={Uniparma at semeval-2021 task 5: Toxic spans detection using characterbert and bag-of-words model},
+  author={Karimi, Akbar and Rossi, Leonardo and Prati, Andrea},
+  journal={arXiv preprint arXiv:2103.09645},
+  year={2021}
 }
+
 ```

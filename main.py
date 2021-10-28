@@ -7,7 +7,7 @@ import logging
 import argparse
 import datetime
 from collections import Counter
-
+import json
 import torch
 from torch.nn import CrossEntropyLoss
 
@@ -28,6 +28,8 @@ from utils.training import train, evaluate
 
 from download import MODEL_TO_URL
 AVAILABLE_MODELS = list(MODEL_TO_URL.keys()) + ['bert-base-uncased']
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
 
 def parse_args():
     """ Parse command line arguments and initialize experiment. """
@@ -54,13 +56,13 @@ def parse_args():
     parser.add_argument(
         "--train_batch_size",
         type=int,
-        default=1,
+        default=4,
         help="Batch size to use for training."
     )
     parser.add_argument(
         "--eval_batch_size",
         type=int,
-        default=1,
+        default=4,
         help="Batch size to use for evaluation."
     )
     parser.add_argument(
@@ -72,12 +74,12 @@ def parse_args():
     parser.add_argument(
         "--num_train_epochs",
         type=int,
-        default=3,
+        default=4,
         help="Number of training epochs."
     )
     parser.add_argument(
         "--validation_ratio",
-        default=0.5, type=float, help="Proportion of training set to use as a validation set.")
+        default=0.1, type=float, help="Proportion of training set to use as a validation set.")
     parser.add_argument(
         "--learning_rate",
         default=5e-5, type=float, help="The initial learning rate for Adam.")
@@ -124,7 +126,7 @@ def parse_args():
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(filename)s -   %(message)s",
         datefmt="%d/%m/%Y %H:%M:%S",
-        level=logging.INFO)
+        level=logging.CRITICAL)
 
     # Check for GPUs
     if torch.cuda.is_available():
@@ -252,8 +254,7 @@ def main(args):
             pad_token_label_id=pad_token_label_id,
             max_seq_length=max_seq_length)
 
-    del data  # Not used anymore
-
+    # del data  # Not used anymore
     # --------------------------------- MODEL ---------------------------------
 
     # Initialize model
@@ -298,11 +299,12 @@ def main(args):
             model=model,
             tokenizer=tokenizer,
             labels=labels,
-            pad_token_label_id=pad_token_label_id
+            pad_token_label_id=pad_token_label_id,
+            writer=writer
         )
         logging.info("global_step = %s, average training loss = %s", global_step, train_loss)
         logging.info("Best performance: Epoch=%d, Value=%s", best_val_epoch, best_val_metric)
-
+    writer.flush()
     # Evaluation on test data
     if args.do_predict:
 
@@ -327,12 +329,23 @@ def main(args):
         model.to(args.device)
 
         # Compute predictions and metrics
-        results, _ = evaluate(
+        results, predictions_list = evaluate(
             args=args,
             eval_dataset=dataset["test"],
             model=model, labels=labels,
             pad_token_label_id=pad_token_label_id
         )
+        # Write predictions in a file
+        sentence_num = 1
+        predictions_dict = {}
+        with open(os.path.join(args.output_dir, 'predictions.json'), 'w') as pred:
+        	for item in predictions_list:
+        		predictions_dict[str(sentence_num)] = item
+        		sentence_num = sentence_num + 1
+        	json.dump(predictions_dict, pred)
+
+        with open(os.path.join(args.output_dir, 'data_test.json'), 'w') as data_test:
+            json.dump(data['test'], data_test)
 
         # Save metrics
         with open(os.path.join(args.output_dir, 'performance_on_test_set.txt'), 'w') as f:
