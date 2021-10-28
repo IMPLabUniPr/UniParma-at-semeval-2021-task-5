@@ -1,7 +1,7 @@
 
 1. run run.sh
 2. copy predictions.json file from the results folder to data_preparation folder
-3. run predict.py
+3. run data_preparation/predict.py
 4. copy the resulted file "spands-pred.txt" to bow_model/bow and rename it to spans-pred_charbert.txt
-5. run bag_of_words.py
+5. run bow_model/bow/bag_of_words.py
 6. the resulted file "spans-pred.txt" is ready for sumbission
