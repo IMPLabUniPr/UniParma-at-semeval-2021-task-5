@@ -132,4 +132,3 @@ runs/
 bow_model_copy/
 **/*.bin
 results/
-data_preparation/
